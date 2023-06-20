@@ -1,0 +1,22 @@
+{
+   "manifest_version": 3,
+   "name": "ChatGPT-4 Message Limit Tracker",
+   "description": "Help keep track of the amount of messages you have left to send via ChatGPT-4 and how long until your messages refresh.",
+   "icons": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+   },
+   "author": {
+      "email": "shane.c.ohanlon@gmail.com"
+   },
+   "version": "1.0",
+   "permissions": ["storage", "activeTab", "scripting"],
+   "content_scripts": [
+      {
+         "matches": ["https://chat.openai.com/*"],
+         "js": ["content.js"]
+      }
+   ]
+}
