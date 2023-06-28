@@ -1,5 +1,7 @@
 ### ChatGPT-4 Message Limit Tracker
 
+[Install the extension here](https://chrome.google.com/webstore/detail/chatgpt-4-message-limit-t/epehajplcipobcknalgcdneghbegkiai).
+
 Currently, when using OpenAI Plus, the user is limited to X messages in Y hours. At the time of publishing this, X=25 and Y=3. 
 
 This Chrome extension adds a simple message to display the amount of messages remaining in that window, and the time until the window resets. 
