@@ -19,7 +19,9 @@ const resourceObserver = new PerformanceObserver((list) => {
           // potentially update the message every second, relevant if fewer than 60 seconds remain in the window
           // also really ensure the send button events are added since they seemed to be missed when only called once
           setInterval( () => {
-            registerSendButtonTracker()
+            registerSendButtonTracker();
+            registerRegenerateButtonTracker();
+            registerSaveAndSubmitButtonTracker();
             updateLimitMessage();
             }, 1000 );
         })
@@ -149,8 +151,10 @@ function updateMessagePlaceholder(message, reset = false)
 }
 
 function registerSendButtonTracker() {
-  const inputField = document.getElementById('prompt-textarea')
-  const button = inputField.nextElementSibling
+  const inputField = document.getElementById('prompt-textarea');
+  if (!inputField) return;
+
+  const button = inputField.nextElementSibling;
 
   if (button && !button.hasAttribute('listenerOnClick')) {
     button.addEventListener('click', onMessageSent);
@@ -166,6 +170,30 @@ function registerSendButtonTracker() {
     });
 
     inputField.setAttribute('listenerOnClick', 'true');
+  }
+}
+
+function registerRegenerateButtonTracker() {
+  const regenDiv = getDivContaining('Regenerate response');
+  if (!regenDiv) return;
+
+  const regenButton = regenDiv.parentElement;
+
+  if (regenButton && !regenButton.hasAttribute('listenerOnClick')) {
+    regenButton.addEventListener('click', onMessageSent);
+    regenButton.setAttribute('listenerOnClick', 'true');
+  }
+}
+
+function registerSaveAndSubmitButtonTracker() {
+  const saveAndSubmitDiv = getDivContaining('Save & Submit');
+  if (!saveAndSubmitDiv) return;
+
+  const editButton = saveAndSubmitDiv.parentElement;
+
+  if (editButton && !editButton.hasAttribute('listenerOnClick')) {
+    editButton.addEventListener('click', onMessageSent);
+    editButton.setAttribute('listenerOnClick', 'true');
   }
 }
 
