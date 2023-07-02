@@ -152,7 +152,6 @@ function registerSendButtonTracker() {
   const inputField = document.getElementById('prompt-textarea')
   const button = inputField.nextElementSibling
 
-  const element = document.getElementById('div');
   if (button && !button.hasAttribute('listenerOnClick')) {
     button.addEventListener('click', onMessageSent);
     button.setAttribute('listenerOnClick', 'true');
