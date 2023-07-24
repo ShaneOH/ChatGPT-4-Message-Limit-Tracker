@@ -1,6 +1,10 @@
 let isWindowActivated, windowActivatedTime, messagesRemaining, maxMessages, capWindow, originalPlaceholder
 let localDataSet = false
 
+// set these manually as an ultimate fallback
+const defaultMaxMessages = 50
+const defaultCapWindow = 180
+
 // semi-reliable way of determining if the page has fully loaded yet since window.onload fires too early
 const resourceObserver = new PerformanceObserver((list) => {
   const entries = list.getEntries();
@@ -11,10 +15,10 @@ const resourceObserver = new PerformanceObserver((list) => {
       fetch(entry.name)
         .then(response => response.json())
         .then(data => {
-          maxMessages = parseInt(data.message_cap)
-          capWindow = parseInt(data.message_cap_window)
+          // data object is no longer useful since it just returns a 401, so derive from content on page
 
-          setLocalDataFromStorage()
+          setCapDataInStorage();
+          setLocalDataFromStorage();
 
           // potentially update the message every second, relevant if fewer than 60 seconds remain in the window
           // also really ensure the send button events are added since they seemed to be missed when only called once
@@ -41,12 +45,34 @@ function connectResourceObserver()
   resourceObserver.observe({ entryTypes: ['resource'] });
 }
 
+function setCapDataInStorage() {
+  const limitMessageDiv = getDivContaining('GPT-4 currently has a cap of');
+
+  if (limitMessageDiv !== null) {
+    const matches = limitMessageDiv.textContent.match(/GPT-4 currently has a cap of (\d+) messages every (\d+) hours/);
+
+    if (matches) {
+        maxMessages = parseInt(matches[1]);
+        capWindow = parseInt(matches[2]) * 60;
+
+        chrome.storage.sync.set({
+          'chatGPT4CapData.maxMessages': maxMessages,
+          'chatGPT4CapData.capWindow': capWindow,
+        });
+    }
+  }
+}
+
 function setLocalDataFromStorage() {
   chrome.storage.sync.get([
+    'chatGPT4CapData.maxMessages',
+    'chatGPT4CapData.capWindow',
     'chatGPT4CapData.isWindowActivated',
     'chatGPT4CapData.windowActivatedTime',
     'chatGPT4CapData.messagesRemaining'
   ], (result) => {
+    maxMessages = parseInt(result['chatGPT4CapData.maxMessages'] || maxMessages || defaultMaxMessages);
+    capWindow = parseInt(result['chatGPT4CapData.capWindow'] || capWindow || defaultCapWindow);
     isWindowActivated = Boolean(result['chatGPT4CapData.isWindowActivated'] || false);
     windowActivatedTime = result['chatGPT4CapData.windowActivatedTime'] || null;
     messagesRemaining = parseInt(result['chatGPT4CapData.messagesRemaining'] || maxMessages);
