@@ -15,19 +15,28 @@ const resourceObserver = new PerformanceObserver((list) => {
       fetch(entry.name)
         .then(response => response.json())
         .then(data => {
-          // data object is no longer useful since it just returns a 401, so derive from content on page
+          if ('message_cap' in data && 'message_cap_window' in data) {
+            maxMessages = parseInt(data.message_cap);
+            capWindow = parseInt(data.message_cap_window);
+
+            if (maxMessages == 25) {
+              // looks like the API is currently returning 25 but their UI says 50, so we'll go with 50 for now
+              // if the API does update to return some other number than 25 then we'll trust that instead
+              maxMessages = 50;
+            }
+          }
 
           setCapDataInStorage();
           setLocalDataFromStorage();
 
           // potentially update the message every second, relevant if fewer than 60 seconds remain in the window
           // also really ensure the send button events are added since they seemed to be missed when only called once
-          setInterval( () => {
+          setInterval(() => {
             registerSendButtonTracker();
             registerRegenerateButtonTracker();
             registerSaveAndSubmitButtonTracker();
             updateLimitMessage();
-            }, 1000 );
+          }, 1000);
         })
         .catch(/* don't break the page in case this the page or API fundamentally changes */);
 
@@ -40,25 +49,27 @@ const resourceObserver = new PerformanceObserver((list) => {
 
 connectResourceObserver()
 
-function connectResourceObserver()
-{
+function connectResourceObserver() {
   resourceObserver.observe({ entryTypes: ['resource'] });
 }
 
 function setCapDataInStorage() {
-  const limitMessageDiv = getDivContaining('GPT-4 currently has a cap of');
-
-  if (limitMessageDiv !== null) {
+  if (maxMessages && capWindow) {
+    chrome.storage.sync.set({
+      'chatGPT4CapData.maxMessages': maxMessages,
+      'chatGPT4CapData.capWindow': capWindow,
+    });
+  } else if (limitMessageDiv !== null) {
     const matches = limitMessageDiv.textContent.match(/GPT-4 currently has a cap of (\d+) messages every (\d+) hours/);
 
     if (matches) {
-        maxMessages = parseInt(matches[1]);
-        capWindow = parseInt(matches[2]) * 60;
+      maxMessages = parseInt(matches[1]);
+      capWindow = parseInt(matches[2]) * 60;
 
-        chrome.storage.sync.set({
-          'chatGPT4CapData.maxMessages': maxMessages,
-          'chatGPT4CapData.capWindow': capWindow,
-        });
+      chrome.storage.sync.set({
+        'chatGPT4CapData.maxMessages': maxMessages,
+        'chatGPT4CapData.capWindow': capWindow,
+      });
     }
   }
 }
@@ -154,8 +165,7 @@ function updateLimitMessage() {
   }
 }
 
-function updateMessageFootnote(limitMessageDiv, message)
-{
+function updateMessageFootnote(limitMessageDiv, message) {
   let capInfoSpan = document.getElementById('cap-info-span');
 
   if (!capInfoSpan) {
@@ -167,8 +177,7 @@ function updateMessageFootnote(limitMessageDiv, message)
   capInfoSpan.textContent = isGpt4() ? `\n${message}` : '';
 }
 
-function updateMessagePlaceholder(message, reset = false)
-{
+function updateMessagePlaceholder(message, reset = false) {
   let prompt = document.getElementById('prompt-textarea');
   if (prompt === null) return
   if (!originalPlaceholder) originalPlaceholder = prompt.placeholder
@@ -245,21 +254,18 @@ function onMessageSent() {
   updateLimitMessage();
 }
 
-function isGpt4()
-{
+function isGpt4() {
   if (window.location.href === 'https://chat.openai.com/?model=gpt-4') {
     return true
   }
 
   if (window.location.href.startsWith('https://chat.openai.com/c/')) {
-    const modelDiv = getDivContaining('Model:')
-    if (modelDiv === null) return false // edge case page not properly loaded yet
-    const model = modelDiv.textContent.substring(modelDiv.textContent.indexOf('Model: ') + 7);
-
-    return model === 'GPT-4'
+    return Array.from(document.querySelectorAll('span')).some(element => {
+      return element.textContent === 'GPT-4';
+    });
   }
 
-  return false
+  return getDivContaining('GPT-4').classList.contains('border-black/10'); // it's selected
 }
 
 const observeUrlChange = () => {
