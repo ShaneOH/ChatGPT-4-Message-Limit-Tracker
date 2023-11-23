@@ -19,10 +19,10 @@ const resourceObserver = new PerformanceObserver((list) => {
             maxMessages = parseInt(data.message_cap);
             capWindow = parseInt(data.message_cap_window);
 
-            if (maxMessages == 25) {
-              // looks like the API is currently returning 25 but their UI says 50, so we'll go with 50 for now
-              // if the API does update to return some other number than 25 then we'll trust that instead
-              maxMessages = 50;
+            if (maxMessages == 50) {
+              // looks like the API is currently returning 50 but their UI says 40, so we'll go with 40 for now
+              // if the API does update to return some other number than 50 then we'll trust that instead
+              maxMessages = 40;
             }
           }
 
@@ -59,18 +59,6 @@ function setCapDataInStorage() {
       'chatGPT4CapData.maxMessages': maxMessages,
       'chatGPT4CapData.capWindow': capWindow,
     });
-  } else if (limitMessageDiv !== null) {
-    const matches = limitMessageDiv.textContent.match(/GPT-4 currently has a cap of (\d+) messages every (\d+) hours/);
-
-    if (matches) {
-      maxMessages = parseInt(matches[1]);
-      capWindow = parseInt(matches[2]) * 60;
-
-      chrome.storage.sync.set({
-        'chatGPT4CapData.maxMessages': maxMessages,
-        'chatGPT4CapData.capWindow': capWindow,
-      });
-    }
   }
 }
 
@@ -152,11 +140,11 @@ function updateLimitMessage() {
     message = `You have ${messagesRemaining} remaining. Your limit will reset in ${remainingTimeMessage}.`;
   }
 
-  const limitMessageDiv = getDivContaining('GPT-4 currently has a cap of')
+  const messagePromptDiv = getDivContaining('Message ChatGPT')
 
-  if (limitMessageDiv !== null) {
+  if (messagePromptDiv !== null) {
     // this will add the limit cap info to the footnote warning in a new conversation
-    updateMessageFootnote(limitMessageDiv, message)
+    updateMessageFootnote(messagePromptDiv, message)
     // remove any potentially rendered prompt once/if this has loaded so we don't display double message
     updateMessagePlaceholder(message, true)
   } else {
@@ -165,13 +153,13 @@ function updateLimitMessage() {
   }
 }
 
-function updateMessageFootnote(limitMessageDiv, message) {
+function updateMessageFootnote(messagePromptDiv, message) {
   let capInfoSpan = document.getElementById('cap-info-span');
 
   if (!capInfoSpan) {
     capInfoSpan = document.createElement('span');
     capInfoSpan.id = 'cap-info-span';
-    limitMessageDiv.appendChild(capInfoSpan);
+    messagePromptDiv.appendChild(capInfoSpan);
   }
 
   capInfoSpan.textContent = isGpt4() ? `\n${message}` : '';
@@ -259,13 +247,9 @@ function isGpt4() {
     return true
   }
 
-  if (window.location.href.startsWith('https://chat.openai.com/c/')) {
-    return Array.from(document.querySelectorAll('span')).some(element => {
-      return element.textContent === 'GPT-4';
-    });
-  }
-
-  return getDivContaining('GPT-4').classList.contains('border-black/10'); // it's selected
+  return Array.from(document.querySelectorAll('span.text-token-text-secondary')).some(element => {
+    return element.textContent === '4';
+  });
 }
 
 const observeUrlChange = () => {
